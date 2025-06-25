@@ -1,4 +1,4 @@
-project(_template)
+project(client)
 
 set(CMAKE_CXX_STANDARD 23)
 file(GLOB_RECURSE HEADER_FILES 	CONFIGURE_DEPENDS "*.h*")
@@ -10,7 +10,7 @@ add_executable(${PROJECT_NAME} ${HEADER_FILES} ${CPP_FILES} )
 
 target_link_libraries(${PROJECT_NAME}
     PUBLIC
-	sampleLib::sampleLib
+	distSync::distSync
 )
 target_include_directories(${PROJECT_NAME}
 	PRIVATE

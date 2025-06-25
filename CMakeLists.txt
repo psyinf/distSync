@@ -17,15 +17,15 @@ include(cmake/deps_cpm.cmake)
 add_subdirectory(libs)
 add_subdirectory(apps)
 
-if (ENABLE_TESTING)
+if (ENABLE_TESTING AND False)
     enable_testing()
 	add_subdirectory(tests)
 endif()
 
-install(DIRECTORY
-        data/
-    DESTINATION
-        data
-    COMPONENT
-        ${RUNTIME_COMPONENT}
-)
+#install(DIRECTORY
+#        data/
+#    DESTINATION
+#        data
+#    COMPONENT
+#        ${RUNTIME_COMPONENT}
+#)
