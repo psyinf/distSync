@@ -4,6 +4,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 try
 {
     // This is a placeholder for the client application main function.
+    //distSync::Client client("192.168.178.152");
     distSync::Client client("localhost");
 
     auto diff = client.sync();
@@ -14,10 +15,9 @@ try
         // Simulate some work
         std::this_thread::sleep_for(std::chrono::seconds(1));
         // Get the current time difference
-        auto synced_time = client.synced_time();
-        // std::cout << synced_time.time_since_epoch().count() << " nanoseconds since epoch" << std::endl;
-        std::cout << "Synced Time: " << synced_time.time_since_epoch().count() << " nanoseconds since epoch"
-                  << std::endl;
+        auto synced_time = client.getTimeBase();
+        std::println("Current synced time: {}", synced_time / 1'000'000'000.0f);
+        
     }
     // system clock cast from synced time
 

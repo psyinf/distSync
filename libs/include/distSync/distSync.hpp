@@ -21,7 +21,10 @@ namespace distSync {
 class Server
 {
 public:
-    Server() = default;
+    Server(const std::string& listen_ip = "*")
+      : _listen_ip(listen_ip)
+    {
+    }
 
     ~Server() { _stopSource.request_stop(); }
 
@@ -31,7 +34,8 @@ public:
         return std::async(std::launch::async, [this]() {
             // Server logic goes here
             zmq::socket_t socket(_context, zmq::socket_type::rep);
-            socket.bind("tcp://*:33337");
+            auto          endpoint = std::format("tcp://{}:33337", _listen_ip);
+            socket.bind(endpoint);
 
             while (!_stopSource.stop_requested())
             {
@@ -48,7 +52,7 @@ public:
 
                 socket.send(zmq::message_t{response_local_time}, zmq::send_flags::sndmore);
                 socket.send(zmq::message_t{response_local_ref_time}, zmq::send_flags::none);
-                std::print("Sent response: {} | {}\n", response_local_time, response_local_ref_time );
+                std::print("Sent response: {} | {}\n", response_local_time, response_local_ref_time);
             }
         });
     }
@@ -69,6 +73,7 @@ private:
     std::chrono::high_resolution_clock::time_point _start;
     std::stop_source                               _stopSource;
     zmq::context_t                                 _context{1};
+    const std::string                              _listen_ip = "*"; // Default listen address
 };
 
 class Client
@@ -78,13 +83,12 @@ public:
 
     ~Client() = default;
 
-    std::chrono::high_resolution_clock::time_point synced_time() const
+    uint64_t getTimeBase() const
     {
-        // now - start + timeDifference
         auto now = std::chrono::high_resolution_clock::now();
-        auto diff = now - _start;
-        return std::chrono::high_resolution_clock::time_point(
-            std::chrono::nanoseconds(diff.count() + _timeDifference_ns));
+        auto relative_from_local_start = now - _start;
+        return relative_from_local_start.count() +
+               _server_ref_time; // return the server reference time adjusted by the local start time
     }
 
     auto sync() -> std::int64_t
@@ -92,19 +96,23 @@ public:
     {
         zmq::message_t request(0);
         _socket.send(request, zmq::send_flags::none);
-        zmq::message_t response;
-        std::ignore = _socket.recv(response, zmq::recv_flags::none);
-        // parse response
-        auto ns_since_epoch = std::stoll(response.to_string());
-        _start = std::chrono::high_resolution_clock::now();
-        auto server_time = std::chrono::high_resolution_clock::time_point(std::chrono::nanoseconds(ns_since_epoch));
+        zmq::message_t local_server_time_response;
+        zmq::message_t local_server_ref_time_response;
 
-        _timeDifference_ns = _start.time_since_epoch().count() - server_time.time_since_epoch().count();
-        return _timeDifference_ns;
+        std::ignore = _socket.recv(local_server_time_response, zmq::recv_flags::none);
+        std::ignore = _socket.recv(local_server_ref_time_response, zmq::recv_flags::none);
+
+        auto server_ns_since_epoch = std::stoll(local_server_time_response.to_string());
+        auto server_ref_time = std::stoll(local_server_ref_time_response.to_string());
+        // start local time base
+        _start = std::chrono::high_resolution_clock::now();
+        _server_ref_time = server_ref_time;
+
+        return _server_ref_time;
     }
 
 private:
-    std::int64_t                                   _timeDifference_ns;
+    std::int64_t                                   _server_ref_time;
     std::chrono::high_resolution_clock::time_point _start;
     zmq::context_t                                 _context{1};
     zmq::socket_t                                  _socket{_context, zmq::socket_type::req};
