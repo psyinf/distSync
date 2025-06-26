@@ -4,8 +4,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 try
 {
     // This is a placeholder for the client application main function.
-    //distSync::Client client("192.168.178.152");
-    distSync::Client client("localhost");
+    distSync::Client client("192.168.178.111");
 
     auto diff = client.sync();
     std::cout << "Initial Time difference with server: " << diff << " nanoseconds" << std::endl;

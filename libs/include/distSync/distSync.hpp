@@ -21,8 +21,9 @@ namespace distSync {
 class Server
 {
 public:
-    Server(const std::string& listen_ip = "*")
+    Server(const std::string& listen_ip = "*", uint16_t port = 31001)
       : _listen_ip(listen_ip)
+      , _port(port)
     {
     }
 
@@ -34,7 +35,7 @@ public:
         return std::async(std::launch::async, [this]() {
             // Server logic goes here
             zmq::socket_t socket(_context, zmq::socket_type::rep);
-            auto          endpoint = std::format("tcp://{}:33337", _listen_ip);
+            auto          endpoint = std::format("tcp://{}:{}", _listen_ip, _port);
             socket.bind(endpoint);
 
             while (!_stopSource.stop_requested())
@@ -74,12 +75,16 @@ private:
     std::stop_source                               _stopSource;
     zmq::context_t                                 _context{1};
     const std::string                              _listen_ip = "*"; // Default listen address
+    uint16_t                                       _port;
 };
 
 class Client
 {
 public:
-    Client(std::string remote_address = "localhost") { _socket.connect("tcp://" + remote_address + ":33337"); }
+    Client(std::string remote_address = "localhost", uint16_t port = 31001)
+    {
+        _socket.connect(std::format("tcp://{}:{}", remote_address, port));
+    }
 
     ~Client() = default;
 
