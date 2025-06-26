@@ -6,8 +6,14 @@ try
     // This is a placeholder for the client application main function.
     distSync::Server server;
     std::print("Starting distSync server...\n");
-    server.run().get();
+    auto f = server.run();
 
+    while (true)
+    {
+        std::println("Local ref time {}", server.getLocalRefTimeSinceEpoch_ns(std::chrono::high_resolution_clock::now()) / 1'000'000'000.0f );
+        std::this_thread::sleep_for(std::chrono::milliseconds(5000)); // Sleep for 1 second
+    }
+    f.get(); // Wait for the server to finish running
     return 0;
 }
 catch (const std::exception& e)

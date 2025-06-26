@@ -27,6 +27,7 @@ public:
 
     std::future<void> run()
     {
+        _start = std::chrono::high_resolution_clock::now();
         return std::async(std::launch::async, [this]() {
             // Server logic goes here
             zmq::socket_t socket(_context, zmq::socket_type::rep);
@@ -37,21 +38,37 @@ public:
                 zmq::message_t request;
                 std::ignore = socket.recv(request, zmq::recv_flags::none);
                 std::print("Received request: {}\n", request.to_string());
+
                 // get current time
                 auto now = std::chrono::high_resolution_clock::now();
-                auto ns_since_epoch =
-                    std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
-                auto ns_since_epoch_str = std::to_string(ns_since_epoch);
+                // as nanoseconds since epoch
+                auto response_local_time = std::format("{}", getTimeSinceEpoch_ns(now));
+                // calculate local reference time since server start as nanoseconds since start
+                auto response_local_ref_time = std::format("{}", getLocalRefTimeSinceEpoch_ns(now));
 
-                zmq::message_t response(ns_since_epoch_str);
-                socket.send(response, zmq::send_flags::none);
+                socket.send(zmq::message_t{response_local_time}, zmq::send_flags::sndmore);
+                socket.send(zmq::message_t{response_local_ref_time}, zmq::send_flags::none);
+                std::print("Sent response: {} | {}\n", response_local_time, response_local_ref_time );
             }
         });
     }
 
+    auto getTimeSinceEpoch_ns(std::chrono::steady_clock::time_point p) const -> std::int64_t
+    {
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(p.time_since_epoch()).count();
+    }
+
+    auto getLocalRefTimeSinceEpoch_ns(std::chrono::steady_clock::time_point p) const -> std::int64_t
+    {
+        const auto current_ns_since_epoch = getTimeSinceEpoch_ns(p);
+        const auto start_ns_since_epoch = getTimeSinceEpoch_ns(_start);
+        return current_ns_since_epoch - start_ns_since_epoch;
+    }
+
 private:
-    std::stop_source _stopSource;
-    zmq::context_t   _context{1};
+    std::chrono::high_resolution_clock::time_point _start;
+    std::stop_source                               _stopSource;
+    zmq::context_t                                 _context{1};
 };
 
 class Client
