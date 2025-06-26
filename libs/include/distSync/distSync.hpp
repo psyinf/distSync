@@ -58,12 +58,12 @@ public:
         });
     }
 
-    auto getTimeSinceEpoch_ns(std::chrono::steady_clock::time_point p) const -> std::int64_t
+    auto getTimeSinceEpoch_ns(std::chrono::high_resolution_clock::time_point p) const -> std::int64_t
     {
         return std::chrono::duration_cast<std::chrono::nanoseconds>(p.time_since_epoch()).count();
     }
 
-    auto getLocalRefTimeSinceEpoch_ns(std::chrono::steady_clock::time_point p) const -> std::int64_t
+    auto getLocalRefTimeSinceEpoch_ns(std::chrono::high_resolution_clock::time_point p) const -> std::int64_t
     {
         const auto current_ns_since_epoch = getTimeSinceEpoch_ns(p);
         const auto start_ns_since_epoch = getTimeSinceEpoch_ns(_start);
